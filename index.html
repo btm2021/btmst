@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Backtest - DCA Strategy</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Trading Backtest</div>
+        <div class="nav-balances">
+            <div class="balance-item anti">
+                <span>Anti-Martingale:</span>
+                <span id="antiMartingaleBalance">$1000.00</span>
+            </div>
+            <div class="balance-item martingale">
+                <span>Martingale:</span>
+                <span id="martingaleBalance">$1000.00</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="trade-form">
+                    <h3>Đặt Lệnh</h3>
+                    <form id="tradeForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Loại:</label>
+                                <select id="tradeType" required>
+                                    <option value="long">Long</option>
+                                    <option value="short">Short</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Kết Quả:</label>
+                                <select id="result" required>
+                                    <option value="win">Thắng</option>
+                                    <option value="loss">Thua</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Entry (DCA):</label>
+                            <input autocomplete="off" type="text" id="entryPrices"
+                                placeholder="0.06540, 0.06500, 0.06450" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Exit:</label>
+                            <input autocomplete="off" type="number" id="exitPrice" step="0.00001" placeholder="0.06600"
+                                required>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit">Thêm</button>
+                            <button type="button" id="resetBtn">Reset</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="dca-summary" id="dcaSummary" style="display: none;">
+                    <h4>DCA Summary</h4>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span>DCA Levels:</span>
+                            <span id="dcaLevels">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Avg Price:</span>
+                            <span id="avgPrice">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Size per Level:</span>
+                            <span id="sizePerLevel">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Total Size (1%):</span>
+                            <span id="totalSize">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Leverage:</span>
+                            <span>x20</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="statistics">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span>Trades:</span>
+                            <span id="totalTrades">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span>Win Rate:</span>
+                            <span id="winRate">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <div class="right-panel">
+            <div class="tables-container">
+                <div class="table-section">
+                    <h4>Anti-Martingale</h4>
+                    <div class="table-wrapper">
+                        <table id="antiMartingaleTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Type</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>Size</th>
+                                    <th>P&L</th>
+                                    <th>Before</th>
+                                    <th>After</th>
+                                    <th>Result</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="table-section">
+                    <h4>Martingale</h4>
+                    <div class="table-wrapper">
+                        <table id="martingaleTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Type</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>Size</th>
+                                    <th>P&L</th>
+                                    <th>Before</th>
+                                    <th>After</th>
+                                    <th>Result</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for trade details -->
+    <div id="tradeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Trade Details</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="trade-details">
+                    <div class="detail-row">
+                        <span>Trade ID:</span>
+                        <span id="modalTradeId">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Type:</span>
+                        <span id="modalTradeType">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Strategy:</span>
+                        <span id="modalStrategy">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>DCA Levels:</span>
+                        <span id="modalDcaLevels">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Entry Price:</span>
+                        <span id="modalEntryPrice">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Exit Price:</span>
+                        <span id="modalExitPrice">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Position Size:</span>
+                        <span id="modalPositionSize">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Leverage:</span>
+                        <span>x20</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>P&L:</span>
+                        <span id="modalPnl">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Balance Before:</span>
+                        <span id="modalBalanceBefore">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Balance After:</span>
+                        <span id="modalBalanceAfter">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Result:</span>
+                        <span id="modalResult">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Timestamp:</span>
+                        <span id="modalTimestamp">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
