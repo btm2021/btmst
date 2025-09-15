@@ -27,6 +27,8 @@ class TradingBacktest {
     initializeEventListeners() {
         const form = document.getElementById('tradeForm');
         const resetBtn = document.getElementById('resetBtn');
+        const resetDataBtn = document.getElementById('resetDataBtn');
+        const statisticsBtn = document.getElementById('statisticsBtn');
         const entryPricesInput = document.getElementById('entryPrices');
         
         form.addEventListener('submit', (e) => {
@@ -38,6 +40,14 @@ class TradingBacktest {
             this.resetData();
         });
 
+        resetDataBtn.addEventListener('click', () => {
+            this.resetData();
+        });
+
+        statisticsBtn.addEventListener('click', () => {
+            this.showStatisticsModal();
+        });
+
         // Update DCA summary when entry prices change
         entryPricesInput.addEventListener('input', () => {
             this.updateDcaSummary();
@@ -45,6 +55,7 @@ class TradingBacktest {
 
         // Modal event listeners
         this.initializeModal();
+        this.initializeStatisticsModal();
     }
 
     initializeModal() {
@@ -64,9 +75,27 @@ class TradingBacktest {
         });
     }
 
+    initializeStatisticsModal() {
+        const modal = document.getElementById('statisticsModal');
+        const closeBtn = document.getElementById('statsModalClose');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
     updateDcaSummary() {
         const entryPricesStr = document.getElementById('entryPrices').value;
         const summaryDiv = document.getElementById('dcaSummary');
+        const detailDiv = document.getElementById('dcaLevelsDetail');
         
         if (!entryPricesStr.trim()) {
             summaryDiv.style.display = 'none';
@@ -89,8 +118,26 @@ class TradingBacktest {
         // Update summary display
         document.getElementById('dcaLevels').textContent = dcaLevels;
         document.getElementById('avgPrice').textContent = this.formatPrice(avgPrice);
-        document.getElementById('sizePerLevel').textContent = this.formatCurrency(sizePerLevel);
         document.getElementById('totalSize').textContent = this.formatCurrency(totalSize);
+        
+        // Create detailed DCA levels display
+        detailDiv.innerHTML = '';
+        entryPrices.forEach((price, index) => {
+            const levelDiv = document.createElement('div');
+            levelDiv.className = 'dca-level-item';
+            
+            const notionalValue = sizePerLevel * this.leverage;
+            const quantity = notionalValue / price;
+            
+            levelDiv.innerHTML = `
+                <span class="dca-level-price">Level ${index + 1}: ${this.formatPrice(price)}</span>
+                <div class="dca-level-info">
+                    <span>Size: ${this.formatCurrency(sizePerLevel)}</span>
+                    <span>Qty: ${quantity.toFixed(4)}</span>
+                </div>
+            `;
+            detailDiv.appendChild(levelDiv);
+        });
         
         summaryDiv.style.display = 'block';
     }
@@ -99,7 +146,7 @@ class TradingBacktest {
         const tradeType = document.getElementById('tradeType').value;
         const entryPricesStr = document.getElementById('entryPrices').value;
         const exitPrice = parseFloat(document.getElementById('exitPrice').value);
-        const result = document.getElementById('result').value;
+        const rrTarget = parseFloat(document.getElementById('rrTarget').value);
 
         // Parse entry prices for DCA
         const entryPrices = entryPricesStr.split(',').map(price => parseFloat(price.trim()));
@@ -112,16 +159,26 @@ class TradingBacktest {
         // Calculate average entry price for DCA
         const avgEntryPrice = entryPrices.reduce((sum, price) => sum + price, 0) / entryPrices.length;
 
+        // Determine result based on PNL
+        let pnlPercent = 0;
+        if (tradeType === 'long') {
+            pnlPercent = ((exitPrice - avgEntryPrice) / avgEntryPrice) * 100;
+        } else {
+            pnlPercent = ((avgEntryPrice - exitPrice) / avgEntryPrice) * 100;
+        }
+        
+        const result = pnlPercent > 0 ? 'win' : 'loss';
+
         // Process trade for both strategies
-        this.processTrade('antiMartingale', tradeType, avgEntryPrice, exitPrice, result, entryPrices);
-        this.processTrade('martingale', tradeType, avgEntryPrice, exitPrice, result, entryPrices);
+        this.processTrade('antiMartingale', tradeType, avgEntryPrice, exitPrice, result, entryPrices, rrTarget);
+        this.processTrade('martingale', tradeType, avgEntryPrice, exitPrice, result, entryPrices, rrTarget);
 
         this.updateDisplay();
         this.saveToStorage();
         this.clearForm();
     }
 
-    processTrade(strategy, tradeType, entryPrice, exitPrice, result, entryPrices) {
+    processTrade(strategy, tradeType, entryPrice, exitPrice, result, entryPrices, rrTarget) {
         const data = strategy === 'antiMartingale' ? this.antiMartingaleData : this.martingaleData;
         const balanceBefore = data.balance;
         
@@ -136,15 +193,16 @@ class TradingBacktest {
             pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
         }
         
-        // Apply leverage effect
-        pnlPercent *= this.leverage;
+        // Apply leverage effect to get ROE%
+        const roePercent = pnlPercent * this.leverage;
         
-        // Apply DCA effect (more levels = distributed risk)
-        const dcaMultiplier = 1 / entryPrices.length;
-        pnlPercent *= dcaMultiplier;
-        
-        const pnlAmount = (positionSize * pnlPercent) / 100;
+        // For DCA, ROE% remains the same as it's based on average entry price
+        // PNL is calculated directly from position size and ROE%
+        const pnlAmount = (positionSize * roePercent) / 100;
         const newBalance = data.balance + pnlAmount;
+
+        // Use RR from select instead of calculating from exit price
+        const actualRR = rrTarget;
 
         // Update consecutive counters
         if (result === 'win') {
@@ -164,6 +222,9 @@ class TradingBacktest {
             exitPrice: exitPrice,
             positionSize: positionSize,
             pnl: pnlAmount,
+            roePercent: roePercent,
+            rrTarget: rrTarget,
+            actualRR: actualRR,
             balanceBefore: balanceBefore,
             balance: newBalance,
             result: result,
@@ -213,7 +274,13 @@ class TradingBacktest {
     // Helper function to format currency amounts
     formatCurrency(amount) {
         if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
-        return `$${amount.toFixed(2)}`;
+        return `$${amount.toFixed(4)}`;
+    }
+
+    // Helper function to format PNL with higher precision
+    formatPnl(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) return '$0.0000';
+        return `$${amount.toFixed(4)}`;
     }
 
     updateDisplay() {
@@ -242,18 +309,35 @@ class TradingBacktest {
 
         trades.forEach(trade => {
             const row = tbody.insertRow();
-            row.className = 'trade-row';
+            row.className = `trade-row ${trade.result === 'win' ? 'win-row' : 'loss-row'}`;
             row.dataset.tradeId = trade.id;
             row.dataset.strategy = strategy;
             
+            // Create type badge
+            const typeBadge = `<span class="type-badge ${trade.type}">${trade.type.toUpperCase()}</span>`;
+            
+            // Create RR display with big win styling
+            const rrDisplay = trade.actualRR > 5 ? 
+                `<span class="big-win-rr">${trade.actualRR}R</span>` : 
+                `${trade.actualRR}R`;
+            
+            // Create ROE display with danger badge for low ROE
+            const roeDisplay = Math.abs(trade.roePercent) < 30 && trade.roePercent !== 0 ? 
+                `<span class="danger-roe">${trade.roePercent >= 0 ? '+' : ''}${trade.roePercent.toFixed(2)}%</span>` : 
+                `${trade.roePercent >= 0 ? '+' : ''}${trade.roePercent.toFixed(2)}%`;
+            
             row.innerHTML = `
                 <td>${trade.id}</td>
-                <td>${trade.type.toUpperCase()}</td>
+                <td>${typeBadge}</td>
                 <td>${this.formatPrice(trade.entryPrice)}</td>
                 <td>${this.formatPrice(trade.exitPrice)}</td>
+                <td class="${trade.roePercent >= 0 ? 'profit' : 'loss'}">
+                    ${roeDisplay}
+                </td>
+                <td>${rrDisplay}</td>
                 <td>${this.formatCurrency(trade.positionSize).replace('$', '')}</td>
                 <td class="${trade.pnl >= 0 ? 'profit' : 'loss'}">
-                    ${trade.pnl >= 0 ? '+' : ''}${this.formatCurrency(trade.pnl).replace('$', '')}
+                    ${trade.pnl >= 0 ? '+' : ''}${this.formatPnl(trade.pnl).replace('$', '')}
                 </td>
                 <td>${this.formatCurrency(trade.balanceBefore).replace('$', '')}</td>
                 <td>${this.formatCurrency(trade.balance).replace('$', '')}</td>
@@ -296,8 +380,10 @@ class TradingBacktest {
             'modalDcaLevels': trade.dcaLevels,
             'modalEntryPrice': this.formatPrice(trade.entryPrice),
             'modalExitPrice': this.formatPrice(trade.exitPrice),
+            'modalRoe': `${trade.roePercent >= 0 ? '+' : ''}${trade.roePercent.toFixed(2)}%`,
+            'modalRr': `${trade.actualRR}R`,
             'modalPositionSize': this.formatCurrency(trade.positionSize),
-            'modalPnl': `${trade.pnl >= 0 ? '+' : ''}${this.formatCurrency(trade.pnl)}`,
+            'modalPnl': `${trade.pnl >= 0 ? '+' : ''}${this.formatPnl(trade.pnl)}`,
             'modalBalanceBefore': this.formatCurrency(trade.balanceBefore),
             'modalBalanceAfter': this.formatCurrency(trade.balance),
             'modalResult': trade.result === 'win' ? 'WIN' : 'LOSS',
@@ -310,6 +396,94 @@ class TradingBacktest {
                 element.textContent = elements[id];
             }
         });
+
+        // Show detailed entry levels with individual ROE and PNL
+        const entryLevelsDiv = document.getElementById('modalEntryLevels');
+        if (entryLevelsDiv && trade.entryPrices) {
+            entryLevelsDiv.innerHTML = '';
+            
+            const sizePerLevel = trade.positionSize / trade.entryPrices.length;
+            
+            trade.entryPrices.forEach((entryPrice, index) => {
+                const levelDiv = document.createElement('div');
+                levelDiv.className = 'entry-level-item';
+                
+                // Calculate individual ROE and PNL for this level
+                let pnlPercent = 0;
+                if (trade.type === 'long') {
+                    pnlPercent = ((trade.exitPrice - entryPrice) / entryPrice) * 100;
+                } else {
+                    pnlPercent = ((entryPrice - trade.exitPrice) / entryPrice) * 100;
+                }
+                
+                const roePercent = pnlPercent * this.leverage;
+                const levelPnl = (sizePerLevel * roePercent) / 100;
+                const notionalValue = sizePerLevel * this.leverage;
+                const quantity = notionalValue / entryPrice;
+                
+                levelDiv.innerHTML = `
+                    <div class="entry-level-header">
+                        <span class="entry-level-price">${this.formatPrice(entryPrice)}</span>
+                        <span class="entry-level-badge">Level ${index + 1}</span>
+                    </div>
+                    <div class="entry-level-stats">
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">Size</span>
+                            <span class="entry-level-stat-value">${this.formatCurrency(sizePerLevel)}</span>
+                        </div>
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">ROE%</span>
+                            <span class="entry-level-stat-value ${roePercent >= 0 ? 'profit' : 'loss'} ${Math.abs(roePercent) < 30 && roePercent !== 0 ? 'danger-roe' : ''}">
+                                ${roePercent >= 0 ? '+' : ''}${roePercent.toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">PNL</span>
+                            <span class="entry-level-stat-value ${levelPnl >= 0 ? 'profit' : 'loss'}">
+                                ${levelPnl >= 0 ? '+' : ''}${this.formatPnl(levelPnl)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                entryLevelsDiv.appendChild(levelDiv);
+            });
+            
+            // Add summary if multiple levels
+            if (trade.entryPrices.length > 1) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'entry-level-item';
+                summaryDiv.style.background = '#e8f5e8';
+                summaryDiv.style.border = '2px solid #27ae60';
+                
+                const totalRoe = (trade.pnl / trade.positionSize) * 100;
+                
+                summaryDiv.innerHTML = `
+                    <div class="entry-level-header">
+                        <span class="entry-level-price">Total Summary</span>
+                        <span class="entry-level-badge" style="background: #27ae60;">DCA</span>
+                    </div>
+                    <div class="entry-level-stats">
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">Total Size</span>
+                            <span class="entry-level-stat-value">${this.formatCurrency(trade.positionSize)}</span>
+                        </div>
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">Avg ROE%</span>
+                            <span class="entry-level-stat-value ${totalRoe >= 0 ? 'profit' : 'loss'}">
+                                ${totalRoe >= 0 ? '+' : ''}${totalRoe.toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="entry-level-stat">
+                            <span class="entry-level-stat-label">Total PNL</span>
+                            <span class="entry-level-stat-value ${trade.pnl >= 0 ? 'profit' : 'loss'}">
+                                ${trade.pnl >= 0 ? '+' : ''}${this.formatPnl(trade.pnl)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                entryLevelsDiv.appendChild(summaryDiv);
+            }
+        }
         
         modal.style.display = 'block';
     }
@@ -356,44 +530,65 @@ class TradingBacktest {
     }
 
     deleteTrade(tradeId, strategy) {
-        if (confirm('Bạn có chắc chắn muốn xóa giao dịch này?')) {
-            const data = strategy === 'antiMartingale' ? this.antiMartingaleData : this.martingaleData;
-            
-            // Find the trade to get its details
-            const tradeIndex = data.trades.findIndex(t => t.id === tradeId);
-            if (tradeIndex === -1) return;
-            
-            const trade = data.trades[tradeIndex];
-            
-            // Recalculate balances by reversing the trade effect
-            if (strategy === 'antiMartingale') {
-                this.antiMartingaleData.balance -= trade.pnl;
-                
-                // Update consecutive counters
-                if (trade.result === 'win') {
-                    this.antiMartingaleData.consecutiveWins = Math.max(0, this.antiMartingaleData.consecutiveWins - 1);
-                } else {
-                    this.antiMartingaleData.consecutiveLosses = Math.max(0, this.antiMartingaleData.consecutiveLosses - 1);
-                }
-            } else {
-                this.martingaleData.balance -= trade.pnl;
-                
-                // Update consecutive counters
-                if (trade.result === 'win') {
-                    this.martingaleData.consecutiveWins = Math.max(0, this.martingaleData.consecutiveWins - 1);
-                } else {
-                    this.martingaleData.consecutiveLosses = Math.max(0, this.martingaleData.consecutiveLosses - 1);
-                }
-            }
-            
-            // Remove the trade
-            data.trades.splice(tradeIndex, 1);
-            
-            // Recalculate all subsequent trades if needed
-            this.recalculateSubsequentTrades(strategy, tradeIndex);
+        if (confirm('Bạn có chắc chắn muốn xóa giao dịch này? Điều này sẽ hoàn lại số tiền cho cả hai chiến lược.')) {
+            // Remove trade from both strategies and restore balance
+            this.removeTradeFromBothStrategies(tradeId);
             
             this.updateDisplay();
             this.saveToStorage();
+        }
+    }
+
+    removeTradeFromBothStrategies(tradeId) {
+        // Remove from Anti-Martingale
+        const antiTradeIndex = this.antiMartingaleData.trades.findIndex(t => t.id === tradeId);
+        if (antiTradeIndex !== -1) {
+            const antiTrade = this.antiMartingaleData.trades[antiTradeIndex];
+            this.antiMartingaleData.balance = antiTrade.balanceBefore;
+            this.antiMartingaleData.trades.splice(antiTradeIndex, 1);
+            
+            // Recalculate subsequent trades
+            this.recalculateSubsequentTrades('antiMartingale', antiTradeIndex);
+        }
+
+        // Remove from Martingale
+        const martTradeIndex = this.martingaleData.trades.findIndex(t => t.id === tradeId);
+        if (martTradeIndex !== -1) {
+            const martTrade = this.martingaleData.trades[martTradeIndex];
+            this.martingaleData.balance = martTrade.balanceBefore;
+            this.martingaleData.trades.splice(martTradeIndex, 1);
+            
+            // Recalculate subsequent trades
+            this.recalculateSubsequentTrades('martingale', martTradeIndex);
+        }
+
+        // Reset consecutive counters for both strategies
+        this.recalculateConsecutiveCounters('antiMartingale');
+        this.recalculateConsecutiveCounters('martingale');
+    }
+
+    recalculateConsecutiveCounters(strategy) {
+        const data = strategy === 'antiMartingale' ? this.antiMartingaleData : this.martingaleData;
+        
+        data.consecutiveWins = 0;
+        data.consecutiveLosses = 0;
+        
+        // Recalculate from the end of trades array
+        for (let i = data.trades.length - 1; i >= 0; i--) {
+            const trade = data.trades[i];
+            if (trade.result === 'win') {
+                if (data.consecutiveLosses === 0) {
+                    data.consecutiveWins++;
+                } else {
+                    break;
+                }
+            } else {
+                if (data.consecutiveWins === 0) {
+                    data.consecutiveLosses++;
+                } else {
+                    break;
+                }
+            }
         }
     }
 
@@ -458,12 +653,13 @@ class TradingBacktest {
                 pnlPercent = ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100;
             }
             
-            // Apply leverage and DCA effects
-            pnlPercent *= this.leverage;
-            const dcaMultiplier = 1 / trade.entryPrices.length;
-            pnlPercent *= dcaMultiplier;
+            // Apply leverage effect
+            const roePercent = pnlPercent * this.leverage;
             
-            trade.pnl = (trade.positionSize * pnlPercent) / 100;
+            // Update trade fields
+            trade.roePercent = roePercent;
+            trade.actualRR = trade.rrTarget || 1; // Use stored RR target
+            trade.pnl = (trade.positionSize * roePercent) / 100;
             trade.balance = trade.balanceBefore + trade.pnl;
         }
     }
@@ -483,14 +679,245 @@ class TradingBacktest {
                 const data = JSON.parse(savedData);
                 if (data.antiMartingale) {
                     this.antiMartingaleData = data.antiMartingale;
+                    // Migrate old trades to new format
+                    this.migrateTrades(this.antiMartingaleData.trades);
                 }
                 if (data.martingale) {
                     this.martingaleData = data.martingale;
+                    // Migrate old trades to new format
+                    this.migrateTrades(this.martingaleData.trades);
                 }
             } catch (error) {
                 console.error('Error loading data from storage:', error);
             }
         }
+    }
+
+    migrateTrades(trades) {
+        trades.forEach(trade => {
+            // Add missing fields for backward compatibility
+            if (trade.roePercent === undefined) {
+                let pnlPercent = 0;
+                if (trade.type === 'long') {
+                    pnlPercent = ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                } else {
+                    pnlPercent = ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100;
+                }
+                const roePercent = pnlPercent * this.leverage;
+                trade.roePercent = roePercent;
+            }
+            
+            if (trade.actualRR === undefined) {
+                trade.actualRR = trade.rrTarget || 1; // Use RR target instead of calculating
+            }
+            
+            if (trade.rrTarget === undefined) {
+                trade.rrTarget = 1; // Default to 1R
+            }
+        });
+    }
+
+    showStatisticsModal() {
+        const modal = document.getElementById('statisticsModal');
+        if (!modal) return;
+
+        // Calculate overall statistics
+        const totalTrades = this.antiMartingaleData.trades.length;
+        const winTrades = this.antiMartingaleData.trades.filter(t => t.result === 'win').length;
+        const lossTrades = totalTrades - winTrades;
+        const winRate = totalTrades > 0 ? ((winTrades / totalTrades) * 100).toFixed(1) : 0;
+
+        // Anti-Martingale statistics
+        const antiPnl = this.antiMartingaleData.balance - this.initialBalance;
+        const antiRoi = ((antiPnl / this.initialBalance) * 100).toFixed(2);
+        const antiMaxWins = this.calculateMaxConsecutive(this.antiMartingaleData.trades, 'win');
+        const antiMaxLosses = this.calculateMaxConsecutive(this.antiMartingaleData.trades, 'loss');
+        const antiBestTrade = this.getBestTrade(this.antiMartingaleData.trades);
+        const antiWorstTrade = this.getWorstTrade(this.antiMartingaleData.trades);
+
+        // Martingale statistics
+        const martPnl = this.martingaleData.balance - this.initialBalance;
+        const martRoi = ((martPnl / this.initialBalance) * 100).toFixed(2);
+        const martMaxWins = this.calculateMaxConsecutive(this.martingaleData.trades, 'win');
+        const martMaxLosses = this.calculateMaxConsecutive(this.martingaleData.trades, 'loss');
+        const martBestTrade = this.getBestTrade(this.martingaleData.trades);
+        const martWorstTrade = this.getWorstTrade(this.martingaleData.trades);
+
+        // Update modal content
+        const updates = {
+            'statsTotal': totalTrades,
+            'statsWinRate': `${winRate}%`,
+            'statsWins': winTrades,
+            'statsLosses': lossTrades,
+            'statsAntiBalance': this.formatCurrency(this.antiMartingaleData.balance),
+            'statsAntiPnl': `${antiPnl >= 0 ? '+' : ''}${this.formatPnl(antiPnl)}`,
+            'statsAntiRoi': `${antiRoi >= 0 ? '+' : ''}${antiRoi}%`,
+            'statsAntiMaxWins': antiMaxWins,
+            'statsAntiMaxLosses': antiMaxLosses,
+            'statsAntiBestTrade': `${antiBestTrade >= 0 ? '+' : ''}${this.formatPnl(antiBestTrade)}`,
+            'statsAntiWorstTrade': `${antiWorstTrade >= 0 ? '+' : ''}${this.formatPnl(antiWorstTrade)}`,
+            'statsMartBalance': this.formatCurrency(this.martingaleData.balance),
+            'statsMartPnl': `${martPnl >= 0 ? '+' : ''}${this.formatPnl(martPnl)}`,
+            'statsMartRoi': `${martRoi >= 0 ? '+' : ''}${martRoi}%`,
+            'statsMartMaxWins': martMaxWins,
+            'statsMartMaxLosses': martMaxLosses,
+            'statsMartBestTrade': `${martBestTrade >= 0 ? '+' : ''}${this.formatPnl(martBestTrade)}`,
+            'statsMartWorstTrade': `${martWorstTrade >= 0 ? '+' : ''}${this.formatPnl(martWorstTrade)}`
+        };
+
+        Object.keys(updates).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = updates[id];
+                
+                // Add profit/loss classes
+                if (id.includes('Pnl') || id.includes('Roi') || id.includes('Trade')) {
+                    element.className = updates[id].startsWith('+') ? 'profit' : 
+                                      updates[id].startsWith('-') ? 'loss' : '';
+                }
+            }
+        });
+
+        // Update performance bars
+        this.updatePerformanceBars(antiRoi, martRoi);
+
+        // Create equity curve chart
+        this.createEquityCurve();
+
+        modal.style.display = 'block';
+    }
+
+    getBestTrade(trades) {
+        if (trades.length === 0) return 0;
+        return Math.max(...trades.map(t => t.pnl));
+    }
+
+    getWorstTrade(trades) {
+        if (trades.length === 0) return 0;
+        return Math.min(...trades.map(t => t.pnl));
+    }
+
+    updatePerformanceBars(antiRoi, martRoi) {
+        const maxRoi = Math.max(Math.abs(antiRoi), Math.abs(martRoi), 10);
+        
+        const antiBar = document.getElementById('antiRoiBar');
+        const martBar = document.getElementById('martRoiBar');
+        const antiValue = document.getElementById('antiRoiValue');
+        const martValue = document.getElementById('martRoiValue');
+        
+        if (antiBar && martBar && antiValue && martValue) {
+            const antiWidth = Math.abs(antiRoi) / maxRoi * 100;
+            const martWidth = Math.abs(martRoi) / maxRoi * 100;
+            
+            antiBar.style.width = `${antiWidth}%`;
+            martBar.style.width = `${martWidth}%`;
+            
+            antiValue.textContent = `${antiRoi >= 0 ? '+' : ''}${antiRoi}%`;
+            martValue.textContent = `${martRoi >= 0 ? '+' : ''}${martRoi}%`;
+            
+            antiValue.className = `bar-value ${antiRoi >= 0 ? 'profit' : 'loss'}`;
+            martValue.className = `bar-value ${martRoi >= 0 ? 'profit' : 'loss'}`;
+        }
+    }
+
+    createEquityCurve() {
+        const canvas = document.getElementById('equityChart');
+        if (!canvas) return;
+
+        // Destroy existing chart if it exists
+        if (this.equityChart) {
+            this.equityChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        
+        // Prepare data for equity curve
+        const antiEquityData = this.getEquityData(this.antiMartingaleData.trades);
+        const martEquityData = this.getEquityData(this.martingaleData.trades);
+        
+        const labels = Array.from({length: Math.max(antiEquityData.length, martEquityData.length)}, (_, i) => i);
+
+        this.equityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Anti-Martingale',
+                    data: antiEquityData,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                }, {
+                    label: 'Martingale',
+                    data: martEquityData,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Balance Evolution Over Time'
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Trade Number'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Balance ($)'
+                        },
+                        beginAtZero: false
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+
+    getEquityData(trades) {
+        const equityData = [this.initialBalance];
+        
+        trades.forEach(trade => {
+            equityData.push(trade.balance);
+        });
+        
+        return equityData;
+    }
+
+    calculateMaxConsecutive(trades, resultType) {
+        let maxConsecutive = 0;
+        let currentConsecutive = 0;
+
+        trades.forEach(trade => {
+            if (trade.result === resultType) {
+                currentConsecutive++;
+                maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+            } else {
+                currentConsecutive = 0;
+            }
+        });
+
+        return maxConsecutive;
     }
 }
 
@@ -535,11 +962,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // ESC to close modal
+        // ESC to close modals
         if (e.key === 'Escape') {
-            const modal = document.getElementById('tradeModal');
-            if (modal) {
-                modal.style.display = 'none';
+            const tradeModal = document.getElementById('tradeModal');
+            const statsModal = document.getElementById('statisticsModal');
+            if (tradeModal && tradeModal.style.display === 'block') {
+                tradeModal.style.display = 'none';
+            }
+            if (statsModal && statsModal.style.display === 'block') {
+                statsModal.style.display = 'none';
             }
         }
     });

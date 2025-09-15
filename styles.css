@@ -20,8 +20,37 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
+}
+
+.nav-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #3498db;
+    color: white;
+}
+
+.nav-btn:hover {
+    background: #2980b9;
+}
+
+.nav-btn.reset-btn {
+    background: #e74c3c;
+}
+
+.nav-btn.reset-btn:hover {
+    background: #c0392b;
 }
 
 .nav-brand {
@@ -196,6 +225,39 @@ button[type="button"]:hover {
     color: #2c3e50;
 }
 
+.dca-levels-detail {
+    margin-top: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+}
+
+.dca-level-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 6px;
+    background: #e8f5e8;
+    border-radius: 3px;
+    font-size: 10px;
+    margin-bottom: 2px;
+}
+
+.dca-level-item:last-child {
+    margin-bottom: 0;
+}
+
+.dca-level-price {
+    font-weight: bold;
+    color: #27ae60;
+}
+
+.dca-level-info {
+    display: flex;
+    gap: 8px;
+    font-size: 9px;
+    color: #666;
+}
+
 .statistics {
     background: white;
     padding: 10px;
@@ -336,6 +398,67 @@ table tbody tr:hover {
     font-size: 9px;
 }
 
+/* Trade type badges */
+.type-badge {
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.type-badge.long {
+    background: #d5f4e6;
+    color: #27ae60;
+}
+
+.type-badge.short {
+    background: #ffeaea;
+    color: #e74c3c;
+}
+
+/* Big win RR background */
+.big-win-rr {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Danger badge for low ROE */
+.danger-roe {
+    background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+    color: #8b4513;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    position: relative;
+}
+
+.danger-roe::after {
+    content: "⚠️";
+    margin-left: 2px;
+    font-size: 8px;
+}
+
+/* Row backgrounds for win/loss */
+.trade-row.win-row {
+    background-color: #f0f9f0 !important;
+}
+
+.trade-row.loss-row {
+    background-color: #fdf2f2 !important;
+}
+
+.trade-row.win-row:hover {
+    background-color: #e8f5e8 !important;
+}
+
+.trade-row.loss-row:hover {
+    background-color: #fce8e8 !important;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
     .main-content {
@@ -349,21 +472,21 @@ table tbody tr:hover {
         gap: 5px;
         padding: 5px 10px;
     }
-    
+
     .nav-balances {
         gap: 15px;
     }
-    
+
     .main-content {
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 5px;
     }
-    
+
     .tables-container {
         flex-direction: column;
     }
-    
+
     .table-section {
         min-height: 250px;
     }
@@ -396,7 +519,7 @@ table tbody tr:hover {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
@@ -406,7 +529,7 @@ table tbody tr:hover {
     border-radius: 8px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
@@ -449,7 +572,7 @@ table tbody tr:hover {
 .detail-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 4px 5px;
     background: #f8f9fa;
     border-radius: 4px;
     font-size: 13px;
@@ -463,6 +586,90 @@ table tbody tr:hover {
 .detail-row span:last-child {
     font-weight: bold;
     color: #2c3e50;
+}
+
+.entry-levels-detail {
+    margin-top: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+}
+
+.entry-level-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    background: white;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.entry-level-item:last-child {
+    margin-bottom: 0;
+}
+
+.entry-level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.entry-level-price {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.entry-level-badge {
+    background: #3498db;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.entry-level-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.entry-level-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.entry-level-stat-label {
+    color: #666;
+    font-size: 10px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.entry-level-stat-value {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 11px;
+}
+
+.entry-level-stat-value.profit {
+    color: #27ae60;
+}
+
+.entry-level-stat-value.loss {
+    color: #e74c3c;
 }
 
 /* Delete Button Styles */
@@ -500,4 +707,417 @@ table td:last-child {
 
 table td:last-child .delete-btn {
     pointer-events: auto;
+}
+
+/* Large Modal Styles */
+.large-modal {
+    max-width: 800px;
+    width: 95%;
+}
+
+/* Statistics Modal Styles */
+.stats-modal {
+    max-width: 1200px;
+    width: 98%;
+    height: 90vh;
+}
+
+.stats-modal .modal-body {
+    padding: 15px;
+    height: calc(90vh - 80px);
+    overflow-y: auto;
+}
+
+.stats-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    height: 100%;
+}
+
+.charts-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stats-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chart-section {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-section h4 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Performance Bars */
+.performance-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.performance-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bar-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+}
+
+.bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 25px;
+}
+
+.bar {
+    height: 100%;
+    border-radius: 12px;
+    min-width: 20px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.anti-bar {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+}
+
+.mart-bar {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.bar-value {
+    font-size: 12px;
+    font-weight: bold;
+    color: #2c3e50;
+    min-width: 50px;
+}
+
+/* Stats Sections */
+.stats-section {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-section h4 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+}
+
+.stats-section.overview h4 {
+    border-bottom-color: #9b59b6;
+}
+
+.stats-section.strategy-stats h4 {
+    border-bottom-color: #27ae60;
+}
+
+.stats-section.strategy-stats:last-child h4 {
+    border-bottom-color: #e74c3c;
+}
+
+/* Compact Stats Grid */
+.stats-grid-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.stat-item-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 13px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-value.win-rate {
+    color: #9b59b6;
+}
+
+.stat-value.profit {
+    color: #27ae60;
+}
+
+.stat-value.loss {
+    color: #e74c3c;
+}
+
+/* Strategy Grid */
+.strategy-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.strategy-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.balance-display,
+.pnl-display,
+.roi-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.balance-label,
+.pnl-label,
+.roi-label {
+    font-size: 10px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.balance-value,
+.pnl-value,
+.roi-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.strategy-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.detail-item span:first-child {
+    color: #666;
+    font-weight: 500;
+}
+
+.detail-item span:last-child {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Trade Modal Styles */
+.trade-modal {
+    max-width: 900px;
+    width: 95%;
+}
+
+.trade-details-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.trade-info-column,
+.entry-levels-column {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.trade-info-column h4,
+.entry-levels-column h4 {
+    margin: 0 0 12px 0;
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 6px;
+}
+
+.entry-levels-column {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.entry-levels-column .entry-levels-detail {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+.stats-container {
+    display: grid;
+    gap: 20px;
+}
+
+.stats-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.stats-section h4 {
+    margin: 0 0 12px 0;
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 6px;
+}
+
+.stats-grid-detailed {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.stat-detail {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    font-size: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.stat-detail span:first-child {
+    color: #666;
+    font-weight: 500;
+}
+
+.stat-detail span:last-child {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-detail span.profit {
+    color: #27ae60;
+}
+
+.stat-detail span.loss {
+    color: #e74c3c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-controls {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .stats-grid-detailed {
+        grid-template-columns: 1fr;
+    }
+
+    .large-modal,
+    .trade-modal,
+    .stats-modal {
+        width: 98%;
+        margin: 2% auto;
+        height: 95vh;
+    }
+
+    .trade-details-layout {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .entry-levels-column {
+        max-height: 300px;
+    }
+
+    .stats-layout {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .charts-column {
+        order: 2;
+    }
+
+    .stats-column {
+        order: 1;
+    }
+
+    .strategy-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .strategy-details {
+        grid-template-columns: 1fr;
+    }
 }

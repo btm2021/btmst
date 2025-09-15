@@ -6,11 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trading Backtest - DCA Strategy</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
     <nav class="navbar">
         <div class="nav-brand">Trading Backtest</div>
+        <div class="nav-controls">
+            <button id="statisticsBtn" class="nav-btn">Statistics</button>
+            <button id="resetDataBtn" class="nav-btn reset-btn">Reset</button>
+        </div>
         <div class="nav-balances">
             <div class="balance-item anti">
                 <span>Anti-Martingale:</span>
@@ -39,10 +44,18 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Kết Quả:</label>
-                                <select id="result" required>
-                                    <option value="win">Thắng</option>
-                                    <option value="loss">Thua</option>
+                                <label>RR Target:</label>
+                                <select id="rrTarget" required>
+                                    <option value="1">1R</option>
+                                    <option value="2">2R</option>
+                                    <option value="3">3R</option>
+                                    <option value="4">4R</option>
+                                    <option value="5">5R</option>
+                                    <option value="6">6R</option>
+                                    <option value="7">7R</option>
+                                    <option value="8">8R</option>
+                                    <option value="9">9R</option>
+                                    <option value="10">10R</option>
                                 </select>
                             </div>
                         </div>
@@ -78,10 +91,6 @@
                             <span id="avgPrice">-</span>
                         </div>
                         <div class="summary-item">
-                            <span>Size per Level:</span>
-                            <span id="sizePerLevel">-</span>
-                        </div>
-                        <div class="summary-item">
                             <span>Total Size (1%):</span>
                             <span id="totalSize">-</span>
                         </div>
@@ -90,6 +99,7 @@
                             <span>x20</span>
                         </div>
                     </div>
+                    <div class="dca-levels-detail" id="dcaLevelsDetail"></div>
                 </div>
 
                 <div class="statistics">
@@ -106,124 +116,294 @@
                 </div>
             </div>
 
-        <div class="right-panel">
-            <div class="tables-container">
-                <div class="table-section">
-                    <h4>Anti-Martingale</h4>
-                    <div class="table-wrapper">
-                        <table id="antiMartingaleTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Type</th>
-                                    <th>Entry</th>
-                                    <th>Exit</th>
-                                    <th>Size</th>
-                                    <th>P&L</th>
-                                    <th>Before</th>
-                                    <th>After</th>
-                                    <th>Result</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+            <div class="right-panel">
+                <div class="tables-container">
+                    <div class="table-section">
+                        <h4>Anti-Martingale</h4>
+                        <div class="table-wrapper">
+                            <table id="antiMartingaleTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Type</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>ROE%</th>
+                                        <th>RR</th>
+                                        <th>Size</th>
+                                        <th>P&L</th>
+                                        <th>Before</th>
+                                        <th>After</th>
+                                        <th>Result</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
 
-                <div class="table-section">
-                    <h4>Martingale</h4>
-                    <div class="table-wrapper">
-                        <table id="martingaleTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Type</th>
-                                    <th>Entry</th>
-                                    <th>Exit</th>
-                                    <th>Size</th>
-                                    <th>P&L</th>
-                                    <th>Before</th>
-                                    <th>After</th>
-                                    <th>Result</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for trade details -->
-    <div id="tradeModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Trade Details</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="trade-details">
-                    <div class="detail-row">
-                        <span>Trade ID:</span>
-                        <span id="modalTradeId">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Type:</span>
-                        <span id="modalTradeType">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Strategy:</span>
-                        <span id="modalStrategy">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>DCA Levels:</span>
-                        <span id="modalDcaLevels">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Entry Price:</span>
-                        <span id="modalEntryPrice">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Exit Price:</span>
-                        <span id="modalExitPrice">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Position Size:</span>
-                        <span id="modalPositionSize">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Leverage:</span>
-                        <span>x20</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>P&L:</span>
-                        <span id="modalPnl">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Balance Before:</span>
-                        <span id="modalBalanceBefore">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Balance After:</span>
-                        <span id="modalBalanceAfter">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Result:</span>
-                        <span id="modalResult">-</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Timestamp:</span>
-                        <span id="modalTimestamp">-</span>
+                    <div class="table-section">
+                        <h4>Martingale</h4>
+                        <div class="table-wrapper">
+                            <table id="martingaleTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Type</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>ROE%</th>
+                                        <th>RR</th>
+                                        <th>Size</th>
+                                        <th>P&L</th>
+                                        <th>Before</th>
+                                        <th>After</th>
+                                        <th>Result</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="script.js"></script>
+        <!-- Modal for trade details -->
+        <div id="tradeModal" class="modal">
+            <div class="modal-content trade-modal">
+                <div class="modal-header">
+                    <h3>Trade Details</h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="trade-details-layout">
+                        <!-- Left Column - General Information -->
+                        <div class="trade-info-column">
+                            <h4>General Information</h4>
+                            <div class="trade-details">
+                                <div class="detail-row">
+                                    <span>Trade ID:</span>
+                                    <span id="modalTradeId">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Type:</span>
+                                    <span id="modalTradeType">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Strategy:</span>
+                                    <span id="modalStrategy">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>DCA Levels:</span>
+                                    <span id="modalDcaLevels">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Entry Price (Avg):</span>
+                                    <span id="modalEntryPrice">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Exit Price:</span>
+                                    <span id="modalExitPrice">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Position Size:</span>
+                                    <span id="modalPositionSize">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Leverage:</span>
+                                    <span>x20</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>ROE%:</span>
+                                    <span id="modalRoe">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>RR Achieved:</span>
+                                    <span id="modalRr">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Total P&L:</span>
+                                    <span id="modalPnl">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Balance Before:</span>
+                                    <span id="modalBalanceBefore">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Balance After:</span>
+                                    <span id="modalBalanceAfter">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Result:</span>
+                                    <span id="modalResult">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Timestamp:</span>
+                                    <span id="modalTimestamp">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column - Entry Levels Detail -->
+                        <div class="entry-levels-column">
+                            <h4>Entry Levels Breakdown</h4>
+                            <div class="entry-levels-detail" id="modalEntryLevels">
+                                <!-- Entry levels will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Modal -->
+        <div id="statisticsModal" class="modal">
+            <div class="modal-content stats-modal">
+                <div class="modal-header">
+                    <h3>📊 Backtest Statistics & Performance Analysis</h3>
+                    <span class="close" id="statsModalClose">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="stats-layout">
+                        <!-- Left Column: Charts -->
+                        <div class="charts-column">
+                            <div class="chart-section">
+                                <h4>📈 Equity Curve</h4>
+                                <div class="chart-container">
+                                    <canvas id="equityChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-section">
+                                <h4>📊 Performance Comparison</h4>
+                                <div class="performance-bars">
+                                    <div class="performance-bar">
+                                        <span class="bar-label">Anti-Martingale ROI</span>
+                                        <div class="bar-container">
+                                            <div class="bar anti-bar" id="antiRoiBar"></div>
+                                            <span class="bar-value" id="antiRoiValue">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="performance-bar">
+                                        <span class="bar-label">Martingale ROI</span>
+                                        <div class="bar-container">
+                                            <div class="bar mart-bar" id="martRoiBar"></div>
+                                            <span class="bar-value" id="martRoiValue">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Statistics -->
+                        <div class="stats-column">
+                            <div class="stats-section overview">
+                                <h4>🎯 Overall Performance</h4>
+                                <div class="stats-grid-compact">
+                                    <div class="stat-item-compact">
+                                        <span class="stat-label">Total Trades</span>
+                                        <span class="stat-value" id="statsTotal">0</span>
+                                    </div>
+                                    <div class="stat-item-compact">
+                                        <span class="stat-label">Win Rate</span>
+                                        <span class="stat-value win-rate" id="statsWinRate">0%</span>
+                                    </div>
+                                    <div class="stat-item-compact">
+                                        <span class="stat-label">Wins</span>
+                                        <span class="stat-value profit" id="statsWins">0</span>
+                                    </div>
+                                    <div class="stat-item-compact">
+                                        <span class="stat-label">Losses</span>
+                                        <span class="stat-value loss" id="statsLosses">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stats-section strategy-stats">
+                                <h4>🟢 Anti-Martingale Strategy</h4>
+                                <div class="strategy-grid">
+                                    <div class="strategy-summary">
+                                        <div class="balance-display">
+                                            <span class="balance-label">Current Balance</span>
+                                            <span class="balance-value" id="statsAntiBalance">$1000.00</span>
+                                        </div>
+                                        <div class="pnl-display">
+                                            <span class="pnl-label">Total P&L</span>
+                                            <span class="pnl-value" id="statsAntiPnl">$0.0000</span>
+                                        </div>
+                                        <div class="roi-display">
+                                            <span class="roi-label">ROI</span>
+                                            <span class="roi-value" id="statsAntiRoi">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="strategy-details">
+                                        <div class="detail-item">
+                                            <span>Max Consecutive Wins:</span>
+                                            <span id="statsAntiMaxWins">0</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Max Consecutive Losses:</span>
+                                            <span id="statsAntiMaxLosses">0</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Best Trade:</span>
+                                            <span id="statsAntiBestTrade">$0.0000</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Worst Trade:</span>
+                                            <span id="statsAntiWorstTrade">$0.0000</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stats-section strategy-stats">
+                                <h4>🔴 Martingale Strategy</h4>
+                                <div class="strategy-grid">
+                                    <div class="strategy-summary">
+                                        <div class="balance-display">
+                                            <span class="balance-label">Current Balance</span>
+                                            <span class="balance-value" id="statsMartBalance">$1000.00</span>
+                                        </div>
+                                        <div class="pnl-display">
+                                            <span class="pnl-label">Total P&L</span>
+                                            <span class="pnl-value" id="statsMartPnl">$0.0000</span>
+                                        </div>
+                                        <div class="roi-display">
+                                            <span class="roi-label">ROI</span>
+                                            <span class="roi-value" id="statsMartRoi">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="strategy-details">
+                                        <div class="detail-item">
+                                            <span>Max Consecutive Wins:</span>
+                                            <span id="statsMartMaxWins">0</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Max Consecutive Losses:</span>
+                                            <span id="statsMartMaxLosses">0</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Best Trade:</span>
+                                            <span id="statsMartBestTrade">$0.0000</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span>Worst Trade:</span>
+                                            <span id="statsMartWorstTrade">$0.0000</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
 </body>
 
 </html>
